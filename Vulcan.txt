@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import fileSelector from 'file-selector';
 
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
@@ -7,12 +6,14 @@ const FileExplorer = () => {
   const handleFileInputChange = async (event) => {
     const files = event.target.files;
 
-    // Use file-selector to get file entries for all selected files and directories
-    const fileEntries = await fileSelector(event.target, { readAs: 'dataURL' });
+    // Convert the FileList object to an array
+    const fileListArray = Array.from(files);
 
-    // Helper function to recursively read directory contents
+    // Recursively process the directory entries and build the file tree
     const readDirectory = async (directory) => {
-      const entries = await directory.createReader().readEntries();
+      const reader = directory.createReader();
+      const entries = await new Promise((resolve) => reader.readEntries(resolve));
+
       const files = await Promise.all(
         entries.map(async (entry) => {
           if (entry.isDirectory) {
@@ -26,7 +27,6 @@ const FileExplorer = () => {
               name: entry.name,
               isFile: true,
               size: entry.size,
-              content: fileEntries.find((fileEntry) => fileEntry.name === entry.name)?.content || null,
             };
           }
         })
@@ -37,21 +37,27 @@ const FileExplorer = () => {
 
     // Start reading the selected directory
     const filesWithDetails = await Promise.all(
-      files.map(async (file) => {
-        if (file.isDirectory) {
-          return {
-            name: file.name,
-            isFile: false,
-            content: await readDirectory(file),
-          };
-        } else {
-          return {
-            name: file.name,
-            isFile: true,
-            size: file.size,
-            content: file.content || null,
-          };
+      fileListArray.map(async (file) => {
+        if (file.webkitGetAsEntry) {
+          const entry = await new Promise((resolve) => {
+            file.webkitGetAsEntry().then(resolve);
+          });
+
+          if (entry.isDirectory) {
+            return {
+              name: entry.name,
+              isFile: false,
+              content: await readDirectory(entry),
+            };
+          }
         }
+
+        // If not a directory, it's a file
+        return {
+          name: file.name,
+          isFile: true,
+          size: file.size,
+        };
       })
     );
 
