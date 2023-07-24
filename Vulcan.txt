@@ -37,8 +37,19 @@ const FileExplorer = () => {
   };
 
   const toggleFolderVisibility = (folder) => {
-    folder.isExpanded = !folder.isExpanded;
-    setFileList([...fileList]);
+    setFileList((prevFileList) => {
+      const updateFolder = (fileList) =>
+        fileList.map((file) => {
+          if (!file.isFile && file.path === folder.path) {
+            return { ...file, isExpanded: !file.isExpanded };
+          } else if (!file.isFile && folder.path.startsWith(file.path)) {
+            return { ...file, isExpanded: true };
+          } else {
+            return file;
+          }
+        });
+      return updateFolder(prevFileList);
+    });
   };
 
   const renderFileTree = (fileList) => {
