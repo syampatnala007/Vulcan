@@ -7,77 +7,64 @@ const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
 
   const handleFileInputChange = async (event) => {
-    const files = event.target.files;
+  const files = event.target.files;
 
-    // Convert the FileList object to an array
-    const fileListArray = Array.from(files);
+  // Convert the FileList object to an array
+  const fileListArray = Array.from(files);
 
-    // Recursively process directory entries and build the file tree
-    const readDirectory = async (directoryEntry) => {
-      const reader = directoryEntry.createReader();
-      const entries = await new Promise((resolve) => reader.readEntries(resolve));
+  // Recursively process directory entries and build the file tree
+  const readDirectory = async (directoryEntry) => {
+    const reader = directoryEntry.createReader();
+    const entries = await new Promise((resolve) => reader.readEntries(resolve));
 
-      const files = await Promise.all(
-        entries.map(async (entry) => {
-          if (entry.isDirectory) {
-            return {
-              name: entry.name,
-              isFile: false,
-              content: await readDirectory(entry),
-            };
-          } else {
-            return {
-              name: entry.name,
-              size: null,
-              isFile: true,
-              content: null,
-            };
-          }
-        })
-      );
-
-      return files;
-    };
-
-    // Start reading the selected directory
-    const filesWithDetails = await Promise.all(
-      fileListArray.map(async (file) => {
-        const entry = await new Promise((resolve) => {
-          // Check if the input is a file or directory and resolve accordingly
-          file.isFile ? resolve(file) : file.webkitGetAsEntry().then(resolve);
-        });
-
-        if (entry.isFile) {
-          return {
-            name: entry.name,
-            size: entry.size,
-            isFile: true,
-            content: null,
-          };
-        } else {
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        if (entry.isDirectory) {
           return {
             name: entry.name,
             isFile: false,
             content: await readDirectory(entry),
           };
-        }
-      })
-    );
-
-    setFileList(filesWithDetails);
-  };
-
-  const toggleFolderVisibility = (folderName) => {
-    setFileList((prevFileList) =>
-      prevFileList.map((file) => {
-        if (!file.isFile && file.name === folderName) {
-          return { ...file, isFolderVisible: !file.isFolderVisible };
         } else {
-          return file;
+          return {
+            name: entry.name,
+            size: null,
+            isFile: true,
+            content: null,
+          };
         }
       })
     );
+
+    return files;
   };
+
+  // Start reading the selected directory
+  const filesWithDetails = await Promise.all(
+    fileListArray.map(async (file) => {
+      if (file.isFile) {
+        return {
+          name: file.name,
+          size: file.size,
+          isFile: true,
+          content: null,
+        };
+      } else {
+        const entry = await new Promise((resolve) => {
+          file.getAsFileSystemHandle().then(resolve);
+        });
+
+        return {
+          name: entry.name,
+          isFile: false,
+          content: await readDirectory(entry),
+        };
+      }
+    })
+  );
+
+  setFileList(filesWithDetails);
+};
 
   const renderFileTree = (fileList) => {
     return fileList.map((file, index) => {
