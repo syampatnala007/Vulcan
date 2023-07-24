@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
+  const [currentFolderPath, setCurrentFolderPath] = useState('');
 
   const handleFilePickerClick = async () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
       const filesWithDetails = await buildFileTree(directoryHandle);
       setFileList(filesWithDetails);
+      setCurrentFolderPath(directoryHandle.name); // Set the current folder path to the root directory name
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
@@ -52,11 +54,12 @@ const FileExplorer = () => {
   };
 
   const handleFolderClick = (folder) => {
+    setCurrentFolderPath(folder.path); // Set the current folder path to the clicked folder path
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
   const handleFileClick = (file) => {
-    alert(`File Path: ${file.path}`);
+    alert(`File Path: ${currentFolderPath}/${file.name}`);
   };
 
   const renderFileTree = (fileList) => {
