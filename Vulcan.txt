@@ -36,26 +36,23 @@ const FileExplorer = () => {
     return files;
   };
 
-  const toggleFolderVisibility = (folder) => {
-    setFileList((prevFileList) =>
-      prevFileList.map((file) => {
-        if (!file.isFile) {
-          if (file.path === folder.path) {
-            return { ...file, isExpanded: !file.isExpanded };
-          } else if (folder.path.startsWith(file.path)) {
-            return { ...file, isExpanded: true };
-          } else {
-            return file;
-          }
+  const toggleFolderVisibility = (folder, fileList) => {
+    const updateFolder = (files) =>
+      files.map((file) => {
+        if (!file.isFile && file.path === folder.path) {
+          return { ...file, isExpanded: !file.isExpanded };
+        } else if (!file.isFile && folder.path.startsWith(file.path)) {
+          return { ...file, isExpanded: true, content: updateFolder(file.content) };
         } else {
           return file;
         }
-      })
-    );
+      });
+
+    return updateFolder(fileList);
   };
 
   const handleFolderClick = (folder) => {
-    toggleFolderVisibility(folder);
+    setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
   const renderFileTree = (fileList) => {
