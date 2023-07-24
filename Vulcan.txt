@@ -24,6 +24,7 @@ const FileExplorer = () => {
           name,
           isFile: true,
           path: filePath,
+          handle, // Store the file handle for accessing global path
         });
       } else if (handle.kind === 'directory') {
         files.push({
@@ -58,9 +59,13 @@ const FileExplorer = () => {
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
-  const handleFileClick = (file) => {
-    const fullPath = `${currentFolderPath}/${file.name}`;
-    alert(`File Path: ${fullPath}`);
+  const handleFileClick = async (file) => {
+    try {
+      const fileHandle = await file.handle.getFile();
+      alert(`Global File Path: ${fileHandle.path}`);
+    } catch (error) {
+      console.error('Error accessing the selected file:', error);
+    }
   };
 
   const renderFileTree = (fileList) => {
