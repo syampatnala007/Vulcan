@@ -36,21 +36,9 @@ const FileExplorer = () => {
     return files;
   };
 
-  const toggleFolderVisibility = async (folder) => {
-    if (!folder.isExpanded) {
-      try {
-        const directoryHandle = await window.showDirectoryPicker();
-        const subFilesWithDetails = await buildFileTree(directoryHandle, folder.path);
-        folder.content = subFilesWithDetails;
-        folder.isExpanded = true;
-        setFileList([...fileList]);
-      } catch (error) {
-        console.error('Error accessing the folder:', error);
-      }
-    } else {
-      folder.isExpanded = false;
-      setFileList([...fileList]);
-    }
+  const toggleFolderVisibility = (folder) => {
+    folder.isExpanded = !folder.isExpanded;
+    setFileList([...fileList]);
   };
 
   const renderFileTree = (fileList) => {
