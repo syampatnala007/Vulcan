@@ -9,7 +9,6 @@ const FileExplorer = () => {
       const directoryHandle = await window.showDirectoryPicker();
       const filesWithDetails = await buildFileTree(directoryHandle);
       setFileList(filesWithDetails);
-      setCurrentFolderPath(directoryHandle.name); // Set the current folder path to the root directory name
 
       // Get the full path of the selected directory
       const fullPath = await getDirectoryPath(directoryHandle);
@@ -44,6 +43,25 @@ const FileExplorer = () => {
     return files;
   };
 
+  const getDirectoryPath = async (directoryHandle) => {
+    let path = directoryHandle.name;
+    let currentHandle = directoryHandle;
+    while (true) {
+      try {
+        const parentHandle = await currentHandle.getParent();
+        if (parentHandle) {
+          path = `${parentHandle.name}/${path}`;
+          currentHandle = parentHandle;
+        } else {
+          break;
+        }
+      } catch (error) {
+        break;
+      }
+    }
+    return path;
+  };
+
   const toggleFolderVisibility = (folder, fileList) => {
     const updateFolder = (files) =>
       files.map((file) => {
@@ -62,21 +80,6 @@ const FileExplorer = () => {
   const handleFolderClick = (folder) => {
     setCurrentFolderPath(folder.path); // Set the current folder path to the clicked folder path
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
-  };
-
-  const getDirectoryPath = async (directoryHandle) => {
-    let path = directoryHandle.name;
-    let currentHandle = directoryHandle;
-    while (currentHandle !== null) {
-      const parentHandle = await currentHandle.getParent();
-      if (parentHandle) {
-        path = `${parentHandle.name}/${path}`;
-        currentHandle = parentHandle;
-      } else {
-        currentHandle = null;
-      }
-    }
-    return path;
   };
 
   const handleFileClick = async (file) => {
