@@ -14,35 +14,41 @@ const FileExplorer = () => {
   };
 
   const buildFileTree = async (directory) => {
-    const files = [];
-    for await (const [name, handle] of directory.entries()) {
-      if (handle.isDirectory) {
-        files.push({
-          name,
-          isFile: false,
-          isExpanded: false, // New property to keep track of folder expansion
-          content: await buildFileTree(handle),
-        });
-      } else {
-        files.push({
-          name,
-          isFile: true,
-        });
-      }
-    }
-    return files;
-  };
-
-  const toggleFolderVisibility = (folderName) => {
-    setFileList((prevFileList) =>
-      prevFileList.map((file) => {
-        if (!file.isFile && file.name === folderName) {
-          return { ...file, isExpanded: !file.isExpanded };
+    const entries = await directory.createReader().readEntries();
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        if (entry.isDirectory) {
+          return {
+            name: entry.name,
+            isFile: false,
+            isExpanded: false,
+          };
         } else {
-          return file;
+          return {
+            name: entry.name,
+            isFile: true,
+          };
         }
       })
     );
+    return files;
+  };
+
+  const toggleFolderVisibility = async (folder) => {
+    if (!folder.isExpanded) {
+      try {
+        const directoryHandle = await window.getDirectoryHandle(folder.name);
+        const subFilesWithDetails = await buildFileTree(directoryHandle);
+        folder.content = subFilesWithDetails;
+        folder.isExpanded = true;
+        setFileList([...fileList]);
+      } catch (error) {
+        console.error('Error accessing the folder:', error);
+      }
+    } else {
+      folder.isExpanded = false;
+      setFileList([...fileList]);
+    }
   };
 
   const renderFileTree = (fileList) => {
@@ -53,7 +59,7 @@ const FileExplorer = () => {
             {file.isFile ? (
               <span>{file.name}</span>
             ) : (
-              <span onClick={() => toggleFolderVisibility(file.name)}>
+              <span onClick={() => toggleFolderVisibility(file)}>
                 <strong>{file.name}</strong>
                 {file.isExpanded && renderFileTree(file.content)} {/* Render subfolders if expanded */}
               </span>
