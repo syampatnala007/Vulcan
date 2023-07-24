@@ -55,13 +55,17 @@ const FileExplorer = () => {
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
+  const handleFileClick = (file) => {
+    alert(`File Path: ${file.path}`);
+  };
+
   const renderFileTree = (fileList) => {
     return (
       <ul>
         {fileList.map((file, index) => (
           <li key={index}>
             {file.isFile ? (
-              <span>{file.name}</span>
+              <span onClick={() => handleFileClick(file)}>{file.name}</span>
             ) : (
               <span onClick={() => handleFolderClick(file)}>
                 <strong>{file.name}</strong>
