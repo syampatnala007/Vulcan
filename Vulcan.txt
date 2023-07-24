@@ -46,6 +46,8 @@ const FileExplorer = () => {
           return { ...file, isExpanded: !file.isExpanded };
         } else if (!file.isFile && folder.path.startsWith(file.path)) {
           return { ...file, isExpanded: true, content: updateFolder(file.content) };
+        } else if (!file.isFile && file.path.startsWith(folder.path)) {
+          return { ...file, isExpanded: false, content: updateFolder(file.content) };
         } else {
           return file;
         }
@@ -59,22 +61,11 @@ const FileExplorer = () => {
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
-  const getParentPath = (file) => {
-    if (file.handle && file.handle.kind === 'directory') {
-      return getParentPath(file.handle).then((parentPath) => `${parentPath}/${file.name}`);
-    } else {
-      return Promise.resolve(currentFolderPath);
-    }
-  };
-
-  const getGlobalPath = (file) => {
-    return getParentPath(file).then((parentPath) => `${parentPath}/${file.name}`);
-  };
-
   const handleFileClick = async (file) => {
     try {
       if (file.isFile && file.handle) {
-        const globalPath = await getGlobalPath(file);
+        const fileHandle = await file.handle.getFile();
+        const globalPath = fileHandle.fullPath;
         alert(`Global File Path: ${globalPath}`);
       }
     } catch (error) {
