@@ -3,80 +3,60 @@ import React, { useState } from 'react';
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
 
-  const handleFileInputChange = async (event) => {
-    const files = event.target.files;
-
+  const handleFilePickerClick = async () => {
     try {
-      // Request the user to select a directory using the File System Access API
       const directoryHandle = await window.showDirectoryPicker();
-
-      // Helper function to recursively read directory contents
-      const readDirectory = async (directory) => {
-        const files = [];
-        for await (const [name, handle] of directory.entries()) {
-          if (handle.isFolder) {
-            files.push({
-              name,
-              isFile: false,
-              content: await readDirectory(handle),
-            });
-          } else {
-            files.push({
-              name,
-              isFile: true,
-            });
-          }
-        }
-        return files;
-      };
-
-      // Start reading the selected directory
-      const filesWithDetails = await readDirectory(directoryHandle);
-
+      const filesWithDetails = await buildFileTree(directoryHandle);
       setFileList(filesWithDetails);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
   };
 
-  const toggleFolderVisibility = (folderName) => {
-    setFileList((prevFileList) =>
-      prevFileList.map((file) => {
-        if (!file.isFile && file.name === folderName) {
-          return { ...file, isFolderVisible: !file.isFolderVisible };
-        } else {
-          return file;
-        }
-      })
-    );
+  const buildFileTree = async (directory) => {
+    const files = [];
+    for await (const [name, handle] of directory.entries()) {
+      if (handle.isDirectory) {
+        files.push({
+          name,
+          isFile: false,
+          content: await buildFileTree(handle),
+        });
+      } else {
+        files.push({
+          name,
+          isFile: true,
+        });
+      }
+    }
+    return files;
   };
 
   const renderFileTree = (fileList) => {
-    return fileList.map((file, index) => {
-      const isFolder = !file.isFile;
-      const isFolderVisible = file.isFolderVisible;
-
-      return (
-        <li key={index}>
-          {isFolder ? (
-            <span onClick={() => toggleFolderVisibility(file.name)}>
-              <strong>{file.name}</strong>
-            </span>
-          ) : (
-            <span>{file.name}</span>
-          )}
-          {isFolder && isFolderVisible && <ul>{renderFileTree(file.content)}</ul>}
-        </li>
-      );
-    });
+    return (
+      <ul>
+        {fileList.map((file, index) => (
+          <li key={index}>
+            {file.isFile ? (
+              <span>{file.name}</span>
+            ) : (
+              <span>
+                <strong>{file.name}</strong>
+                {renderFileTree(file.content)}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   return (
     <div>
-      <input type="file" directory="" webkitdirectory="" onChange={handleFileInputChange} />
+      <button onClick={handleFilePickerClick}>Select Directory</button>
       <div>
         <h2>Files and folders in the selected directory:</h2>
-        <ul>{renderFileTree(fileList)}</ul>
+        {fileList.length > 0 ? renderFileTree(fileList) : <p>No directory selected</p>}
       </div>
     </div>
   );
