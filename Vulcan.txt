@@ -65,13 +65,18 @@ const FileExplorer = () => {
   };
 
   const getDirectoryPath = async (directoryHandle) => {
-    if ('path' in directoryHandle) {
-      return directoryHandle.path; // Chrome
-    } else {
-      // Fallback for other browsers
-      const dirEntry = await directoryHandle.queryPermission({ mode: 'read' });
-      return dirEntry.name;
+    let path = directoryHandle.name;
+    let currentHandle = directoryHandle;
+    while (currentHandle !== null) {
+      const parentHandle = await currentHandle.getParent();
+      if (parentHandle) {
+        path = `${parentHandle.name}/${path}`;
+        currentHandle = parentHandle;
+      } else {
+        currentHandle = null;
+      }
     }
+    return path;
   };
 
   const handleFileClick = async (file) => {
