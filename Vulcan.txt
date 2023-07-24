@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import fileSelector from 'file-selector';
 
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
@@ -6,14 +7,12 @@ const FileExplorer = () => {
   const handleFileInputChange = async (event) => {
     const files = event.target.files;
 
-    // Convert the FileList object to an array
-    const fileListArray = Array.from(files);
+    // Use file-selector to get file entries for all selected files and directories
+    const fileEntries = await fileSelector(event.target, { readAs: 'dataURL' });
 
-    // Recursively process the directory entries and build the file tree
-    const readDirectory = async (directoryEntry) => {
-      const reader = directoryEntry.createReader();
-      const entries = await new Promise((resolve) => reader.readEntries(resolve));
-
+    // Helper function to recursively read directory contents
+    const readDirectory = async (directory) => {
+      const entries = await directory.createReader().readEntries();
       const files = await Promise.all(
         entries.map(async (entry) => {
           if (entry.isDirectory) {
@@ -25,9 +24,9 @@ const FileExplorer = () => {
           } else {
             return {
               name: entry.name,
-              size: null,
               isFile: true,
-              content: null,
+              size: entry.size,
+              content: fileEntries.find((fileEntry) => fileEntry.name === entry.name)?.content || null,
             };
           }
         })
@@ -38,27 +37,19 @@ const FileExplorer = () => {
 
     // Start reading the selected directory
     const filesWithDetails = await Promise.all(
-      fileListArray.map(async (file) => {
-        const entry = await new Promise((resolve) => {
-          if (file.webkitGetAsEntry) {
-            file.webkitGetAsEntry().then(resolve);
-          } else {
-            resolve(file);
-          }
-        });
-
-        if (entry.isDirectory) {
+      files.map(async (file) => {
+        if (file.isDirectory) {
           return {
-            name: entry.name,
+            name: file.name,
             isFile: false,
-            content: await readDirectory(entry),
+            content: await readDirectory(file),
           };
         } else {
           return {
-            name: entry.name,
-            size: file.size,
+            name: file.name,
             isFile: true,
-            content: null,
+            size: file.size,
+            content: file.content || null,
           };
         }
       })
@@ -91,7 +82,9 @@ const FileExplorer = () => {
               <strong>{file.name}</strong>
             </span>
           ) : (
-            <span>{file.name}</span>
+            <span>
+              {file.name} ({file.size} bytes)
+            </span>
           )}
           {isFolder && isFolderVisible && <ul>{renderFileTree(file.content)}</ul>}
         </li>
