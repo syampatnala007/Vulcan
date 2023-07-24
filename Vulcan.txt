@@ -41,7 +41,7 @@ const FileExplorer = () => {
       if (!file.isFile && file.path === folder.path) {
         return { ...file, isExpanded: !file.isExpanded };
       } else if (!file.isFile && folder.path.startsWith(file.path)) {
-        return { ...file, isExpanded: true };
+        return { ...file, isExpanded: true, content: toggleFolderVisibility(folder, file.content) };
       } else if (!file.isFile && file.isExpanded) {
         return { ...file, content: toggleFolderVisibility(folder, file.content) };
       } else {
