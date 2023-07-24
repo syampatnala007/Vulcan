@@ -10,6 +10,10 @@ const FileExplorer = () => {
       const filesWithDetails = await buildFileTree(directoryHandle);
       setFileList(filesWithDetails);
       setCurrentFolderPath(directoryHandle.name); // Set the current folder path to the root directory name
+
+      // Get the full path of the selected directory
+      const fullPath = await getDirectoryPath(directoryHandle);
+      alert(`Selected Directory Path: ${fullPath}`);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
@@ -46,8 +50,6 @@ const FileExplorer = () => {
           return { ...file, isExpanded: !file.isExpanded };
         } else if (!file.isFile && folder.path.startsWith(file.path)) {
           return { ...file, isExpanded: true, content: updateFolder(file.content) };
-        } else if (!file.isFile && file.path.startsWith(folder.path)) {
-          return { ...file, isExpanded: false, content: updateFolder(file.content) };
         } else {
           return file;
         }
@@ -59,6 +61,11 @@ const FileExplorer = () => {
   const handleFolderClick = (folder) => {
     setCurrentFolderPath(folder.path); // Set the current folder path to the clicked folder path
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
+  };
+
+  const getDirectoryPath = async (directoryHandle) => {
+    const dirEntry = await directoryHandle.queryPermission({ mode: 'read' });
+    return dirEntry.name;
   };
 
   const handleFileClick = async (file) => {
