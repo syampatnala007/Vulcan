@@ -14,41 +14,29 @@ const FileExplorer = () => {
   };
 
   const buildFileTree = async (directory) => {
-    const entries = await directory.createReader().readEntries();
-    const files = await Promise.all(
-      entries.map(async (entry) => {
-        if (entry.isDirectory) {
-          return {
-            name: entry.name,
-            isFile: false,
-            isExpanded: false,
-          };
-        } else {
-          return {
-            name: entry.name,
-            isFile: true,
-          };
-        }
-      })
-    );
+    const files = [];
+    for await (const [name, handle] of directory.entries()) {
+      if (handle.kind === 'file') {
+        files.push({
+          name,
+          isFile: true,
+        });
+      } else if (handle.kind === 'directory') {
+        const subDirectoryHandle = await handle.getAsDirectory();
+        files.push({
+          name,
+          isFile: false,
+          isExpanded: false,
+          content: await buildFileTree(subDirectoryHandle),
+        });
+      }
+    }
     return files;
   };
 
-  const toggleFolderVisibility = async (folder) => {
-    if (!folder.isExpanded) {
-      try {
-        const directoryHandle = await window.getDirectoryHandle(folder.name);
-        const subFilesWithDetails = await buildFileTree(directoryHandle);
-        folder.content = subFilesWithDetails;
-        folder.isExpanded = true;
-        setFileList([...fileList]);
-      } catch (error) {
-        console.error('Error accessing the folder:', error);
-      }
-    } else {
-      folder.isExpanded = false;
-      setFileList([...fileList]);
-    }
+  const toggleFolderVisibility = (folder) => {
+    folder.isExpanded = !folder.isExpanded;
+    setFileList([...fileList]);
   };
 
   const renderFileTree = (fileList) => {
