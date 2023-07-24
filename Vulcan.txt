@@ -13,30 +13,44 @@ const FileExplorer = () => {
     }
   };
 
-  const buildFileTree = async (directory) => {
+  const buildFileTree = async (directory, path = '') => {
     const files = [];
     for await (const [name, handle] of directory.entries()) {
+      const filePath = `${path}/${name}`;
       if (handle.kind === 'file') {
         files.push({
           name,
           isFile: true,
+          path: filePath,
         });
       } else if (handle.kind === 'directory') {
-        const subDirectoryHandle = await handle.getAsDirectory();
         files.push({
           name,
           isFile: false,
           isExpanded: false,
-          content: await buildFileTree(subDirectoryHandle),
+          path: filePath,
+          content: await buildFileTree(handle, filePath),
         });
       }
     }
     return files;
   };
 
-  const toggleFolderVisibility = (folder) => {
-    folder.isExpanded = !folder.isExpanded;
-    setFileList([...fileList]);
+  const toggleFolderVisibility = async (folder) => {
+    if (!folder.isExpanded) {
+      try {
+        const directoryHandle = await window.showDirectoryPicker();
+        const subFilesWithDetails = await buildFileTree(directoryHandle, folder.path);
+        folder.content = subFilesWithDetails;
+        folder.isExpanded = true;
+        setFileList([...fileList]);
+      } catch (error) {
+        console.error('Error accessing the folder:', error);
+      }
+    } else {
+      folder.isExpanded = false;
+      setFileList([...fileList]);
+    }
   };
 
   const renderFileTree = (fileList) => {
