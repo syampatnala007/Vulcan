@@ -66,14 +66,6 @@ const FileExplorer = () => {
       const { readable } = writableStream.getWriter();
       const fileHandle = await window.showSaveFilePicker({
         writable: readable,
-        types: [
-          {
-            description: 'All Files',
-            accept: {
-              '*/*': [''],
-            },
-          },
-        ],
       });
 
       const fileStream = await fileHandle.createWritable();
@@ -82,7 +74,7 @@ const FileExplorer = () => {
       await writer.write(data);
       await writer.close();
 
-      alert(`Global File Path: ${fileHandle.getFile().path}`);
+      alert(`Global File Path: ${fileHandle.getFile().name}`);
     } catch (error) {
       console.error('Error accessing the selected file:', error);
     }
