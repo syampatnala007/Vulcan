@@ -61,20 +61,8 @@ const FileExplorer = () => {
 
   const handleFileClick = async (file) => {
     try {
-      // Create a temporary file to get its path
-      const writableStream = new WritableStream();
-      const { readable } = writableStream.getWriter();
-      const fileHandle = await window.showSaveFilePicker({
-        writable: readable,
-      });
-
-      const fileStream = await fileHandle.createWritable();
-      const writer = fileStream.getWriter();
-      const data = new TextEncoder().encode('Temporary content');
-      await writer.write(data);
-      await writer.close();
-
-      alert(`Global File Path: ${fileHandle.getFile().name}`);
+      const fileHandle = await file.handle.getFile();
+      alert(`Global File Path: ${fileHandle.name}`);
     } catch (error) {
       console.error('Error accessing the selected file:', error);
     }
