@@ -13,6 +13,7 @@ const FileExplorer = () => {
 
       // Get the full path of the selected directory
       const fullPath = await getDirectoryPath(directoryHandle);
+      setCurrentFolderPath(fullPath);
       alert(`Selected Directory Path: ${fullPath}`);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
@@ -64,8 +65,13 @@ const FileExplorer = () => {
   };
 
   const getDirectoryPath = async (directoryHandle) => {
-    const dirEntry = await directoryHandle.queryPermission({ mode: 'read' });
-    return dirEntry.name;
+    if ('path' in directoryHandle) {
+      return directoryHandle.path; // Chrome
+    } else {
+      // Fallback for other browsers
+      const dirEntry = await directoryHandle.queryPermission({ mode: 'read' });
+      return dirEntry.name;
+    }
   };
 
   const handleFileClick = async (file) => {
