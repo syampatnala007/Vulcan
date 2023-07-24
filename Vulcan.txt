@@ -36,20 +36,22 @@ const FileExplorer = () => {
     return files;
   };
 
-  const toggleFolderVisibility = (folder) => {
-    setFileList((prevFileList) => {
-      const updateFolder = (fileList) =>
-        fileList.map((file) => {
-          if (!file.isFile && file.path === folder.path) {
-            return { ...file, isExpanded: !file.isExpanded };
-          } else if (!file.isFile && folder.path.startsWith(file.path)) {
-            return { ...file, isExpanded: true };
-          } else {
-            return file;
-          }
-        });
-      return updateFolder(prevFileList);
+  const toggleFolderVisibility = (folder, fileList) => {
+    return fileList.map((file) => {
+      if (!file.isFile && file.path === folder.path) {
+        return { ...file, isExpanded: !file.isExpanded };
+      } else if (!file.isFile && folder.path.startsWith(file.path)) {
+        return { ...file, isExpanded: true };
+      } else if (!file.isFile && file.isExpanded) {
+        return { ...file, content: toggleFolderVisibility(folder, file.content) };
+      } else {
+        return file;
+      }
     });
+  };
+
+  const handleFolderClick = (folder) => {
+    setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
   const renderFileTree = (fileList) => {
@@ -60,7 +62,7 @@ const FileExplorer = () => {
             {file.isFile ? (
               <span>{file.name}</span>
             ) : (
-              <span onClick={() => toggleFolderVisibility(file)}>
+              <span onClick={() => handleFolderClick(file)}>
                 <strong>{file.name}</strong>
                 {file.isExpanded && renderFileTree(file.content)} {/* Render subfolders if expanded */}
               </span>
