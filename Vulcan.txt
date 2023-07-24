@@ -59,16 +59,16 @@ const FileExplorer = () => {
     setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
   };
 
-  const getGlobalPath = (file) => {
-    const getParentPath = (file) => {
-      if (file.handle && file.handle.kind === 'directory') {
-        return getParentPath(file.handle).then((parentPath) => `${parentPath}/${file.name}`);
-      } else {
-        return Promise.resolve(currentFolderPath);
-      }
-    };
+  const getGlobalPath = async (file) => {
+    if (!file.handle) return '';
 
-    return getParentPath(file).then((parentPath) => `${parentPath}/${file.name}`);
+    try {
+      const fileHandle = await file.handle.getFile();
+      return fileHandle.fullPath;
+    } catch (error) {
+      console.error('Error accessing the selected file:', error);
+      return '';
+    }
   };
 
   const handleFileClick = async (file) => {
