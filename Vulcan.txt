@@ -6,62 +6,37 @@ const FileExplorer = () => {
   const handleFileInputChange = async (event) => {
     const files = event.target.files;
 
-    // Convert the FileList object to an array
-    const fileListArray = Array.from(files);
+    try {
+      // Request the user to select a directory using the File System Access API
+      const directoryHandle = await window.showDirectoryPicker();
 
-    // Recursively process the directory entries and build the file tree
-    const readDirectory = async (directory) => {
-      const reader = directory.createReader();
-      const entries = await new Promise((resolve) => reader.readEntries(resolve));
-
-      const files = await Promise.all(
-        entries.map(async (entry) => {
-          if (entry.isDirectory) {
-            return {
-              name: entry.name,
+      // Helper function to recursively read directory contents
+      const readDirectory = async (directory) => {
+        const files = [];
+        for await (const [name, handle] of directory.entries()) {
+          if (handle.isFolder) {
+            files.push({
+              name,
               isFile: false,
-              content: await readDirectory(entry),
-            };
+              content: await readDirectory(handle),
+            });
           } else {
-            return {
-              name: entry.name,
+            files.push({
+              name,
               isFile: true,
-              size: entry.size,
-            };
-          }
-        })
-      );
-
-      return files;
-    };
-
-    // Start reading the selected directory
-    const filesWithDetails = await Promise.all(
-      fileListArray.map(async (file) => {
-        if (file.webkitGetAsEntry) {
-          const entry = await new Promise((resolve) => {
-            file.webkitGetAsEntry().then(resolve);
-          });
-
-          if (entry.isDirectory) {
-            return {
-              name: entry.name,
-              isFile: false,
-              content: await readDirectory(entry),
-            };
+            });
           }
         }
+        return files;
+      };
 
-        // If not a directory, it's a file
-        return {
-          name: file.name,
-          isFile: true,
-          size: file.size,
-        };
-      })
-    );
+      // Start reading the selected directory
+      const filesWithDetails = await readDirectory(directoryHandle);
 
-    setFileList(filesWithDetails);
+      setFileList(filesWithDetails);
+    } catch (error) {
+      console.error('Error accessing the selected directory:', error);
+    }
   };
 
   const toggleFolderVisibility = (folderName) => {
@@ -88,9 +63,7 @@ const FileExplorer = () => {
               <strong>{file.name}</strong>
             </span>
           ) : (
-            <span>
-              {file.name} ({file.size} bytes)
-            </span>
+            <span>{file.name}</span>
           )}
           {isFolder && isFolderVisible && <ul>{renderFileTree(file.content)}</ul>}
         </li>
