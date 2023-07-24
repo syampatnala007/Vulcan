@@ -1,24 +1,52 @@
-
-
-
 import React, { useState } from 'react';
 
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
 
   const handleFileInputChange = async (event) => {
-  const files = event.target.files;
+    const files = event.target.files;
 
-  // Convert the FileList object to an array
-  const fileListArray = Array.from(files);
+    // Convert the FileList object to an array
+    const fileListArray = Array.from(files);
 
-  // Recursively process directory entries and build the file tree
-  const readDirectory = async (directoryEntry) => {
-    const reader = directoryEntry.createReader();
-    const entries = await new Promise((resolve) => reader.readEntries(resolve));
+    // Recursively process the directory entries and build the file tree
+    const readDirectory = async (directoryEntry) => {
+      const reader = directoryEntry.createReader();
+      const entries = await new Promise((resolve) => reader.readEntries(resolve));
 
-    const files = await Promise.all(
-      entries.map(async (entry) => {
+      const files = await Promise.all(
+        entries.map(async (entry) => {
+          if (entry.isDirectory) {
+            return {
+              name: entry.name,
+              isFile: false,
+              content: await readDirectory(entry),
+            };
+          } else {
+            return {
+              name: entry.name,
+              size: null,
+              isFile: true,
+              content: null,
+            };
+          }
+        })
+      );
+
+      return files;
+    };
+
+    // Start reading the selected directory
+    const filesWithDetails = await Promise.all(
+      fileListArray.map(async (file) => {
+        const entry = await new Promise((resolve) => {
+          if (file.webkitGetAsEntry) {
+            file.webkitGetAsEntry().then(resolve);
+          } else {
+            resolve(file);
+          }
+        });
+
         if (entry.isDirectory) {
           return {
             name: entry.name,
@@ -28,7 +56,7 @@ const FileExplorer = () => {
         } else {
           return {
             name: entry.name,
-            size: null,
+            size: file.size,
             isFile: true,
             content: null,
           };
@@ -36,35 +64,20 @@ const FileExplorer = () => {
       })
     );
 
-    return files;
+    setFileList(filesWithDetails);
   };
 
-  // Start reading the selected directory
-  const filesWithDetails = await Promise.all(
-    fileListArray.map(async (file) => {
-      if (file.isFile) {
-        return {
-          name: file.name,
-          size: file.size,
-          isFile: true,
-          content: null,
-        };
-      } else {
-        const entry = await new Promise((resolve) => {
-          file.getAsFileSystemHandle().then(resolve);
-        });
-
-        return {
-          name: entry.name,
-          isFile: false,
-          content: await readDirectory(entry),
-        };
-      }
-    })
-  );
-
-  setFileList(filesWithDetails);
-};
+  const toggleFolderVisibility = (folderName) => {
+    setFileList((prevFileList) =>
+      prevFileList.map((file) => {
+        if (!file.isFile && file.name === folderName) {
+          return { ...file, isFolderVisible: !file.isFolderVisible };
+        } else {
+          return file;
+        }
+      })
+    );
+  };
 
   const renderFileTree = (fileList) => {
     return fileList.map((file, index) => {
@@ -80,9 +93,7 @@ const FileExplorer = () => {
           ) : (
             <span>{file.name}</span>
           )}
-          {isFolder && isFolderVisible && (
-            <ul>{renderFileTree(file.content)}</ul>
-          )}
+          {isFolder && isFolderVisible && <ul>{renderFileTree(file.content)}</ul>}
         </li>
       );
     });
@@ -93,9 +104,7 @@ const FileExplorer = () => {
       <input type="file" directory="" webkitdirectory="" onChange={handleFileInputChange} />
       <div>
         <h2>Files and folders in the selected directory:</h2>
-        <ul>
-          {renderFileTree(fileList)}
-        </ul>
+        <ul>{renderFileTree(fileList)}</ul>
       </div>
     </div>
   );
