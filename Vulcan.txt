@@ -65,7 +65,6 @@ const FileExplorer = () => {
       const writableStream = new WritableStream();
       const { readable } = writableStream.getWriter();
       const fileHandle = await window.showSaveFilePicker({
-        startIn: 'same',
         writable: readable,
         types: [
           {
