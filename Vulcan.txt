@@ -20,6 +20,7 @@ const FileExplorer = () => {
         files.push({
           name,
           isFile: false,
+          isExpanded: false, // New property to keep track of folder expansion
           content: await buildFileTree(handle),
         });
       } else {
@@ -32,6 +33,18 @@ const FileExplorer = () => {
     return files;
   };
 
+  const toggleFolderVisibility = (folderName) => {
+    setFileList((prevFileList) =>
+      prevFileList.map((file) => {
+        if (!file.isFile && file.name === folderName) {
+          return { ...file, isExpanded: !file.isExpanded };
+        } else {
+          return file;
+        }
+      })
+    );
+  };
+
   const renderFileTree = (fileList) => {
     return (
       <ul>
@@ -40,9 +53,9 @@ const FileExplorer = () => {
             {file.isFile ? (
               <span>{file.name}</span>
             ) : (
-              <span>
+              <span onClick={() => toggleFolderVisibility(file.name)}>
                 <strong>{file.name}</strong>
-                {renderFileTree(file.content)}
+                {file.isExpanded && renderFileTree(file.content)} {/* Render subfolders if expanded */}
               </span>
             )}
           </li>
