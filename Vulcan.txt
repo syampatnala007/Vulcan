@@ -1,0 +1,117 @@
+
+
+
+import React, { useState } from 'react';
+
+const FileExplorer = () => {
+  const [fileList, setFileList] = useState([]);
+
+  const handleFileInputChange = async (event) => {
+    const files = event.target.files;
+
+    // Convert the FileList object to an array
+    const fileListArray = Array.from(files);
+
+    // Recursively process directory entries and build the file tree
+    const readDirectory = async (directoryEntry) => {
+      const reader = directoryEntry.createReader();
+      const entries = await new Promise((resolve) => reader.readEntries(resolve));
+
+      const files = await Promise.all(
+        entries.map(async (entry) => {
+          if (entry.isDirectory) {
+            return {
+              name: entry.name,
+              isFile: false,
+              content: await readDirectory(entry),
+            };
+          } else {
+            return {
+              name: entry.name,
+              size: null,
+              isFile: true,
+              content: null,
+            };
+          }
+        })
+      );
+
+      return files;
+    };
+
+    // Start reading the selected directory
+    const filesWithDetails = await Promise.all(
+      fileListArray.map(async (file) => {
+        const entry = await new Promise((resolve) => {
+          // Check if the input is a file or directory and resolve accordingly
+          file.isFile ? resolve(file) : file.webkitGetAsEntry().then(resolve);
+        });
+
+        if (entry.isFile) {
+          return {
+            name: entry.name,
+            size: entry.size,
+            isFile: true,
+            content: null,
+          };
+        } else {
+          return {
+            name: entry.name,
+            isFile: false,
+            content: await readDirectory(entry),
+          };
+        }
+      })
+    );
+
+    setFileList(filesWithDetails);
+  };
+
+  const toggleFolderVisibility = (folderName) => {
+    setFileList((prevFileList) =>
+      prevFileList.map((file) => {
+        if (!file.isFile && file.name === folderName) {
+          return { ...file, isFolderVisible: !file.isFolderVisible };
+        } else {
+          return file;
+        }
+      })
+    );
+  };
+
+  const renderFileTree = (fileList) => {
+    return fileList.map((file, index) => {
+      const isFolder = !file.isFile;
+      const isFolderVisible = file.isFolderVisible;
+
+      return (
+        <li key={index}>
+          {isFolder ? (
+            <span onClick={() => toggleFolderVisibility(file.name)}>
+              <strong>{file.name}</strong>
+            </span>
+          ) : (
+            <span>{file.name}</span>
+          )}
+          {isFolder && isFolderVisible && (
+            <ul>{renderFileTree(file.content)}</ul>
+          )}
+        </li>
+      );
+    });
+  };
+
+  return (
+    <div>
+      <input type="file" directory="" webkitdirectory="" onChange={handleFileInputChange} />
+      <div>
+        <h2>Files and folders in the selected directory:</h2>
+        <ul>
+          {renderFileTree(fileList)}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default FileExplorer;
