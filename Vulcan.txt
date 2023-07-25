@@ -11,6 +11,11 @@ const FolderTree = ({ folders }) => {
     }
   };
 
+  const handleFileClick = (filePath) => {
+    // Show the global path of the file in an alert
+    alert('Global path: ' + filePath);
+  };
+
   const renderFolder = (folder) => {
     const isExpanded = expandedFolders.includes(folder.name);
 
@@ -23,7 +28,7 @@ const FolderTree = ({ folders }) => {
           <div style={{ marginLeft: '20px' }}>
             {folder.contents.map((item, index) =>
               item.type === 'file' ? (
-                <div key={index}>File: {item.name}</div>
+                <div key={index} onClick={() => handleFileClick(item.path)}>File: {item.name}</div>
               ) : (
                 <div key={index}>
                   {renderFolder(item)}
@@ -76,7 +81,7 @@ const ConfigFilesDisplay = () => {
     for await (const entry of configDirectoryHandle.values()) {
       if (entry.kind === 'file') {
         const file = await entry.getFile();
-        configContentsList.push({ type: 'file', name: file.name });
+        configContentsList.push({ type: 'file', name: file.name, path: file.path });
       } else if (entry.kind === 'directory') {
         const subfolderContents = [];
         await traverseConfigDirectory(entry, subfolderContents);
