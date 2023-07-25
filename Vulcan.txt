@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { promisify } from 'util';
-import { Repository } from 'nodegit';
 
 const GitRemoteLinkDisplay = () => {
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -10,30 +8,37 @@ const GitRemoteLinkDisplay = () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
       setSelectedFolder(directoryHandle);
-      getGitRemoteLink(directoryHandle);
+
+      // Get the path of the selected directory
+      const directoryPath = await getDirectoryPath(directoryHandle);
+
+      // Fetch the Git remote link from the server-side API
+      const remoteLink = await fetchGitRemoteLink(directoryPath);
+      setGitRemoteLink(remoteLink);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
   };
 
-  const getGitRemoteLink = async (directoryHandle) => {
+  const getDirectoryPath = async (directoryHandle) => {
+    // Convert the directory handle to a Node.js-compatible FileSystemDirectoryHandle
+    const nodejsDirectoryHandle = await directoryHandle.queryPermission({ mode: 'readwrite' });
+    const nodejsDirectory = await nodejsDirectoryHandle.get();
+    return nodejsDirectory.path;
+  };
+
+  const fetchGitRemoteLink = async (directoryPath) => {
     try {
-      // Convert the directory handle to a Node.js-compatible FileSystemDirectoryHandle
-      const nodejsDirectoryHandle = await directoryHandle.queryPermission({ mode: 'readwrite' });
-      const nodejsDirectory = await nodejsDirectoryHandle.get();
-      const directoryPath = nodejsDirectory.path;
-
-      // Open the Git repository in the selected directory
-      const repository = await Repository.open(directoryPath);
-
-      // Get the remote URL of the repository
-      const remote = await repository.getRemote('origin');
-      const remoteUrl = remote.url();
-
-      // Set the Git remote link in the state
-      setGitRemoteLink(remoteUrl);
+      // Make a request to your server-side API to fetch the Git remote link
+      const response = await fetch(`/api/getGitRemoteLink?directory=${encodeURIComponent(directoryPath)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch Git remote link.');
+      }
+      const data = await response.json();
+      return data.remoteLink;
     } catch (error) {
-      console.error('Error getting Git remote link:', error);
+      console.error('Error fetching Git remote link:', error);
+      return '';
     }
   };
 
