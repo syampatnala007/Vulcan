@@ -1,25 +1,81 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const FileExplorer = () => {
-  const handleFileChange = (event) => {
-    const selectedFiles = event.target.files;
-    displayFiles(selectedFiles);
+const FileDropdown = ({ files }) => {
+  const handleFileClick = (filePath) => {
+    // Show the global path of the file in an alert
+    alert('Global path: ' + filePath);
   };
 
-  const displayFiles = (files) => {
-    const fileNames = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      fileNames.push(file.name);
+  return (
+    <select onChange={(e) => handleFileClick(e.target.value)}>
+      <option value="">Select a file</option>
+      {files.map((file, index) => (
+        <option key={index} value={file.path}>
+          {file.name}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+const ConfigFilesDisplay = () => {
+  const [selectedDirectory, setSelectedDirectory] = useState(null);
+  const [configFiles, setConfigFiles] = useState([]);
+
+  const handleFilePickerClick = async () => {
+    try {
+      const directoryHandle = await window.showDirectoryPicker();
+      setSelectedDirectory(directoryHandle);
+
+      // Read the contents of the "config" subfolder
+      const configFilesList = await readConfigFiles(directoryHandle);
+      setConfigFiles(configFilesList);
+    } catch (error) {
+      console.error('Error accessing the selected directory:', error);
     }
-    console.log('Files in the selected folder:', fileNames);
+  };
+
+  const readConfigFiles = async (directoryHandle) => {
+    try {
+      const configFilesList = [];
+      const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
+      await traverseConfigDirectory(configDirectoryHandle, configFilesList, directoryHandle.name);
+      return configFilesList;
+    } catch (error) {
+      console.error('Error reading config files:', error);
+      return [];
+    }
+  };
+
+  const traverseConfigDirectory = async (configDirectoryHandle, configFilesList, basePath) => {
+    for await (const entry of configDirectoryHandle.values()) {
+      if (entry.kind === 'file') {
+        const file = await entry.getFile();
+        configFilesList.push({ name: file.name, path: `${basePath}/config/${file.name}` });
+      } else if (entry.kind === 'directory') {
+        await traverseConfigDirectory(entry, configFilesList, `${basePath}/config`);
+      }
+    }
   };
 
   return (
     <div>
-      <input type="file" onChange={handleFileChange} webkitdirectory />
+      <button onClick={handleFilePickerClick}>Select Directory</button>
+      {selectedDirectory && (
+        <div>
+          <p>Selected Directory: {selectedDirectory.name}/config</p>
+          {configFiles.length > 0 ? (
+            <div>
+              <h3>Files in "config" Subfolder:</h3>
+              <FileDropdown files={configFiles} />
+            </div>
+          ) : (
+            <p>No files found in the "config" subfolder.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-export default FileExplorer;
+export default ConfigFilesDisplay;
