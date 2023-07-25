@@ -1,62 +1,59 @@
 import React, { useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { promisify } from 'util';
+import { Repository } from 'nodegit';
 
-const FileExplorer = () => {
-  const [fileList, setFileList] = useState([]);
-  const [currentFolderPath, setCurrentFolderPath] = useState('');
+const GitRemoteLinkDisplay = () => {
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [gitRemoteLink, setGitRemoteLink] = useState('');
 
-  const onDrop = (acceptedFiles) => {
-    // Handle the selected files here, acceptedFiles will contain the files within the selected directory
-    const filesWithDetails = acceptedFiles.map((file) => ({
-      name: file.name,
-      isFile: true,
-      path: file.path, // The file.path might not be a full global path but can provide useful file information
-    }));
-    setFileList(filesWithDetails);
+  const handleFilePickerClick = async () => {
+    try {
+      const directoryHandle = await window.showDirectoryPicker();
+      setSelectedFolder(directoryHandle);
+      getGitRemoteLink(directoryHandle);
+    } catch (error) {
+      console.error('Error accessing the selected directory:', error);
+    }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: '*', // Allow any file type to be dropped
-    multiple: true, // Allow multiple files to be dropped
-    onDrop,
-    noClick: true, // Disable the default click behavior to prevent file selection dialog
-  });
+  const getGitRemoteLink = async (directoryHandle) => {
+    try {
+      // Convert the directory handle to a Node.js-compatible FileSystemDirectoryHandle
+      const nodejsDirectoryHandle = await directoryHandle.queryPermission({ mode: 'readwrite' });
+      const nodejsDirectory = await nodejsDirectoryHandle.get();
+      const directoryPath = nodejsDirectory.path;
 
-  const renderFileList = () => {
-    return (
-      <ul>
-        {fileList.map((file, index) => (
-          <li key={index}>
-            {file.isFile ? (
-              <span>{file.name}</span>
-            ) : (
-              <span>
-                <strong>{file.name}</strong>
-                {file.isExpanded && renderFileList()} {/* Render subfolders if expanded */}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    );
+      // Open the Git repository in the selected directory
+      const repository = await Repository.open(directoryPath);
+
+      // Get the remote URL of the repository
+      const remote = await repository.getRemote('origin');
+      const remoteUrl = remote.url();
+
+      // Set the Git remote link in the state
+      setGitRemoteLink(remoteUrl);
+    } catch (error) {
+      console.error('Error getting Git remote link:', error);
+    }
   };
 
   return (
     <div>
-      <div {...getRootProps()}>
-        <input {...getInputProps()} webkitdirectory="" />
-        {isDragActive ? (
-          <p>Drop the directory here ...</p>
-        ) : (
-          <p>Drag 'n' drop a directory here, or click to select a directory</p>
-        )}
-      </div>
+      <button onClick={handleFilePickerClick}>Select Directory</button>
       <div>
-        <h2>Files and folders in the selected directory:</h2>
-        {fileList.length > 0 ? renderFileList() : <p>No directory selected</p>}
+        {selectedFolder && (
+          <p>
+            Selected Folder: {selectedFolder.name}
+          </p>
+        )}
+        {gitRemoteLink && (
+          <p>
+            Git Remote Link: {gitRemoteLink}
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
-export default FileExplorer;
+export default GitRemoteLinkDisplay;
