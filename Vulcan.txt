@@ -1,44 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const FileExplorer = () => {
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  const handleFilePickerClick = async () => {
-    try {
-      const directoryHandle = await window.showDirectoryPicker();
-      const files = await readFilesInDirectory(directoryHandle);
-      setSelectedFiles(files);
-    } catch (error) {
-      console.error('Error accessing the selected directory:', error);
-    }
+  const handleFileChange = (event) => {
+    const selectedFiles = event.target.files;
+    displayFiles(selectedFiles);
   };
 
-  const readFilesInDirectory = async (directoryHandle) => {
-    const files = [];
-    for await (const entry of directoryHandle.values()) {
-      if (entry.isFile) {
-        files.push(entry);
-      } else if (entry.isDirectory) {
-        const nestedFiles = await readFilesInDirectory(entry);
-        files.push(...nestedFiles);
-      }
+  const displayFiles = (files) => {
+    const fileNames = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      fileNames.push(file.name);
     }
-    return files;
+    console.log('Files in the selected folder:', fileNames);
   };
 
   return (
     <div>
-      <button onClick={handleFilePickerClick}>Select Folder</button>
-      {selectedFiles.length > 0 && (
-        <div>
-          <h3>Files in Selected Folder:</h3>
-          <ul>
-            {selectedFiles.map((file) => (
-              <li key={file.name}>{file.name}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <input type="file" onChange={handleFileChange} webkitdirectory />
     </div>
   );
 };
