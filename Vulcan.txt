@@ -1,189 +1,57 @@
 import React, { useState } from 'react';
 
-const FolderTree = ({ folders }) => {
-  const [expandedFolders, setExpandedFolders] = useState([]);
-
-  const handleFolderClick = (folderName) => {
-    if (expandedFolders.includes(folderName)) {
-      setExpandedFolders(expandedFolders.filter((folder) => folder !== folderName));
-    } else {
-      setExpandedFolders([...expandedFolders, folderName]);
-    }
-  };
-
-  const handleFileClick = (filePath) => {
-    // Show the global path of the file in an alert
-    alert('Global path: ' + filePath);
-  };
-
-  const renderFolder = (folder) => {
-    const isExpanded = expandedFolders.includes(folder.name);
-
-    return (
-      <div key={folder.name}>
-        <button onClick={() => handleFolderClick(folder.name)}>
-          {isExpanded ? '▼' : '▶'} {folder.name}
-        </button>
-        {isExpanded && (
-          <div style={{ marginLeft: '20px' }}>
-            {folder.contents.map((item, index) =>
-              item.type === 'file' ? (
-                <div key={index} onClick={() => handleFileClick(item.path)}>File: {item.name}</div>
-              ) : (
-                <div key={index}>
-                  {renderFolder(item)}
-                </div>
-              )
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div>
-      {folders.map((folder, index) => renderFolder(folder, index))}
-    </div>
-  );
-};
-
-const ConfigFilesDisplay = () => {
-  const [selectedDirectory, setSelectedDirectory] = useState(null);
-  const [configContents, setConfigContents] = useState(null);
+const FileUpload = () => {
+  const [fileNames, setFileNames] = useState([]);
 
   const handleFilePickerClick = async () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
-      setSelectedDirectory(directoryHandle);
-
-      // Read the contents of the "config" subfolder
-      const configContentsList = await readConfigContents(directoryHandle);
-      setConfigContents(configContentsList);
+      const files = await readFilesInDirectory(directoryHandle);
+      setFileNames(files.map((file) => ({ name: file.name, path: file.path })));
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
   };
 
-  const readConfigContents = async (directoryHandle) => {
-    try {
-      const configContentsList = [];
-      const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
-      await traverseConfigDirectory(configDirectoryHandle, configContentsList);
-      return configContentsList;
-    } catch (error) {
-      console.error('Error reading config contents:', error);
-      return [];
+  const readFilesInDirectory = async (directoryHandle) => {
+    const files = [];
+    for await (const entry of directoryHandle.values()) {
+      if (entry.isFile) {
+        files.push(entry);
+      } else if (entry.isDirectory) {
+        const nestedFiles = await readFilesInDirectory(entry);
+        files.push(...nestedFiles);
+      }
     }
+    return files;
   };
 
-  const traverseConfigDirectory = async (configDirectoryHandle, configContentsList) => {
-    for await (const entry of configDirectoryHandle.values()) {
-      if (entry.kind === 'file') {
-        const file = await entry.getFile();
-        configContentsList.push({ type: 'file', name: file.name, path: file.path });
-      } else if (entry.kind === 'directory') {
-        const subfolderContents = [];
-        await traverseConfigDirectory(entry, subfolderContents);
-        configContentsList.push({ type: 'folder', name: entry.name, contents: subfolderContents });
-      }
+  const handleFileSelect = (event) => {
+    const selectedFileName = event.target.value;
+    const selectedFile = fileNames.find((file) => file.name === selectedFileName);
+    if (selectedFile) {
+      alert('Selected File Path: ' + selectedFile.path);
     }
   };
 
   return (
     <div>
       <button onClick={handleFilePickerClick}>Select Directory</button>
-      {selectedDirectory && (
+      {fileNames.length > 0 && (
         <div>
-          <p>Selected Directory: {selectedDirectory.name}/config</p>
-          {configContents !== null && configContents.length > 0 ? (
-            <div>
-              <h3>Contents of "config" Subfolder:</h3>
-              <FolderTree folders={configContents} />
-            </div>
-          ) : (
-            <p>No contents found in the "config" subfolder.</p>
-          )}
+          <h3>Files in Selected Directory:</h3>
+          <select onChange={handleFileSelect}>
+            <option value="">Select a file</option>
+            {fileNames.map((file) => (
+              <option key={file.name} value={file.name}>
+                {file.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>
   );
 };
 
-export default ConfigFilesDisplay;
-
--------------------------------------
-
-import React, { useState } from 'react';
-
-const FolderTree = ({ folders }) => {
-  // ... (Same as previous FolderTree implementation)
-};
-
-const ConfigFilesDisplay = () => {
-  const [selectedDirectory, setSelectedDirectory] = useState(null);
-  const [configContents, setConfigContents] = useState(null);
-
-  const handleFilePickerClick = async () => {
-    try {
-      const directoryHandle = await window.showDirectoryPicker();
-      setSelectedDirectory(directoryHandle);
-
-      // Read the contents of the "config" subfolder
-      const configContentsList = await readConfigContents(directoryHandle);
-      setConfigContents(configContentsList);
-    } catch (error) {
-      console.error('Error accessing the selected directory:', error);
-    }
-  };
-
-  const readConfigContents = async (directoryHandle) => {
-    try {
-      const configContentsList = [];
-      const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
-      await traverseConfigDirectory(configDirectoryHandle, configContentsList, directoryHandle);
-      return configContentsList;
-    } catch (error) {
-      console.error('Error reading config contents:', error);
-      return [];
-    }
-  };
-
-  const traverseConfigDirectory = async (configDirectoryHandle, configContentsList, parentDirectory) => {
-    const parentPath = parentDirectory ? parentDirectory.fullPath : '';
-    const configPath = `${parentPath}/config`;
-    
-    for await (const entry of configDirectoryHandle.values()) {
-      if (entry.kind === 'file') {
-        const file = await entry.getFile();
-        configContentsList.push({ type: 'file', name: file.name, path: `${configPath}/${file.name}` });
-      } else if (entry.kind === 'directory') {
-        const subfolderContents = [];
-        await traverseConfigDirectory(entry, subfolderContents, configDirectoryHandle);
-        configContentsList.push({ type: 'folder', name: entry.name, contents: subfolderContents, path: `${configPath}/${entry.name}` });
-      }
-    }
-  };
-
-  return (
-    <div>
-      <button onClick={handleFilePickerClick}>Select Directory</button>
-      {selectedDirectory && (
-        <div>
-          <p>Selected Directory: {selectedDirectory.fullPath}</p>
-          {configContents !== null && configContents.length > 0 ? (
-            <div>
-              <h3>Contents of "config" Subfolder:</h3>
-              <FolderTree folders={configContents} />
-            </div>
-          ) : (
-            <p>No contents found in the "config" subfolder.</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default ConfigFilesDisplay;
-
+export default FileUpload;
