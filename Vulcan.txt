@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 const FileUpload = () => {
   const [fileNames, setFileNames] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleFilePickerClick = async () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
       const files = await readFilesInDirectory(directoryHandle);
       setFileNames(files);
+      setShowDropdown(true); // Show the dropdown after files are selected
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
@@ -37,7 +39,7 @@ const FileUpload = () => {
   return (
     <div>
       <button onClick={handleFilePickerClick}>Select Directory</button>
-      {fileNames.length > 0 && (
+      {showDropdown && fileNames.length > 0 && ( // Show the dropdown when files are selected
         <div>
           <h3>Files in Selected Directory:</h3>
           <select onChange={handleFileSelect}>
