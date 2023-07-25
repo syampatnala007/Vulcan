@@ -1,5 +1,48 @@
 import React, { useState } from 'react';
 
+const FolderTree = ({ folders }) => {
+  const [expandedFolders, setExpandedFolders] = useState([]);
+
+  const handleFolderClick = (folderName) => {
+    if (expandedFolders.includes(folderName)) {
+      setExpandedFolders(expandedFolders.filter((folder) => folder !== folderName));
+    } else {
+      setExpandedFolders([...expandedFolders, folderName]);
+    }
+  };
+
+  const renderFolder = (folder) => {
+    const isExpanded = expandedFolders.includes(folder.name);
+
+    return (
+      <div key={folder.name}>
+        <button onClick={() => handleFolderClick(folder.name)}>
+          {isExpanded ? '▼' : '▶'} {folder.name}
+        </button>
+        {isExpanded && (
+          <div style={{ marginLeft: '20px' }}>
+            {folder.contents.map((item) =>
+              item.type === 'file' ? (
+                <div key={item.name}>File: {item.name}</div>
+              ) : (
+                <div key={item.name}>
+                  {renderFolder(item)}
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {folders.map((folder) => renderFolder(folder))}
+    </div>
+  );
+};
+
 const ConfigFilesDisplay = () => {
   const [selectedDirectory, setSelectedDirectory] = useState(null);
   const [configContents, setConfigContents] = useState([]);
@@ -42,10 +85,6 @@ const ConfigFilesDisplay = () => {
     }
   };
 
-  const handleSubfolderClick = (subfolderContents) => {
-    setConfigContents(subfolderContents);
-  };
-
   return (
     <div>
       <button onClick={handleFilePickerClick}>Select Directory</button>
@@ -55,19 +94,7 @@ const ConfigFilesDisplay = () => {
           {configContents.length > 0 ? (
             <div>
               <h3>Contents of "config" Subfolder:</h3>
-              <ul>
-                {configContents.map((content, index) => (
-                  <li key={index}>
-                    {content.type === 'file' ? (
-                      <strong>File: {content.name}</strong>
-                    ) : (
-                      <button onClick={() => handleSubfolderClick(content.contents)}>
-                        <strong>Folder: {content.name}</strong>
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <FolderTree folders={configContents} />
             </div>
           ) : (
             <p>No contents found in the "config" subfolder.</p>
