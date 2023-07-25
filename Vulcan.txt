@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
 const ConfigFilesDisplay = () => {
-  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [selectedDirectory, setSelectedDirectory] = useState(null);
   const [configContents, setConfigContents] = useState([]);
 
   const handleFilePickerClick = async () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
-      setSelectedFolder(directoryHandle);
+      setSelectedDirectory(directoryHandle);
 
       // Read the contents of the "config" subfolder
       const configContentsList = await readConfigContents(directoryHandle);
@@ -20,7 +20,8 @@ const ConfigFilesDisplay = () => {
   const readConfigContents = async (directoryHandle) => {
     try {
       const configContentsList = [];
-      await traverseDirectory(directoryHandle, configContentsList);
+      const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
+      await traverseConfigDirectory(configDirectoryHandle, configContentsList);
       return configContentsList;
     } catch (error) {
       console.error('Error reading config contents:', error);
@@ -28,25 +29,8 @@ const ConfigFilesDisplay = () => {
     }
   };
 
-  const traverseDirectory = async (directoryHandle, configContentsList) => {
-    for await (const entry of directoryHandle.values()) {
-      if (entry.kind === 'file') {
-        // Do nothing for files in the parent folder
-      } else if (entry.kind === 'directory') {
-        // Check if the directory is the "config" subfolder
-        if (entry.name === 'config') {
-          const configSubfolderHandle = await entry.getDirectoryHandle();
-          await readConfigContentsFromSubfolder(configSubfolderHandle, configContentsList);
-        } else {
-          // Recursively traverse subdirectories
-          await traverseDirectory(entry, configContentsList);
-        }
-      }
-    }
-  };
-
-  const readConfigContentsFromSubfolder = async (configSubfolderHandle, configContentsList) => {
-    for await (const entry of configSubfolderHandle.values()) {
+  const traverseConfigDirectory = async (configDirectoryHandle, configContentsList) => {
+    for await (const entry of configDirectoryHandle.values()) {
       if (entry.kind === 'file') {
         const file = await entry.getFile();
         configContentsList.push({ type: 'file', name: file.name });
@@ -58,10 +42,10 @@ const ConfigFilesDisplay = () => {
 
   return (
     <div>
-      <button onClick={handleFilePickerClick}>Select Folder</button>
-      {selectedFolder && (
+      <button onClick={handleFilePickerClick}>Select Directory</button>
+      {selectedDirectory && (
         <div>
-          <p>Selected Folder: {selectedFolder.name}</p>
+          <p>Selected Directory: {selectedDirectory.name}/config</p>
           {configContents.length > 0 ? (
             <div>
               <h3>Contents of "config" Subfolder:</h3>
