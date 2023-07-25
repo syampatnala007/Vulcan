@@ -7,7 +7,7 @@ const FileUpload = () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
       const files = await readFilesInDirectory(directoryHandle);
-      setFileNames(files.map((file) => ({ name: file.name, path: file.path })));
+      setFileNames(files);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
@@ -17,7 +17,7 @@ const FileUpload = () => {
     const files = [];
     for await (const entry of directoryHandle.values()) {
       if (entry.isFile) {
-        files.push(entry);
+        files.push({ name: entry.name, path: entry.fullPath });
       } else if (entry.isDirectory) {
         const nestedFiles = await readFilesInDirectory(entry);
         files.push(...nestedFiles);
