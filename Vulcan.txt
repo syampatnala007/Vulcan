@@ -91,7 +91,7 @@ const ConfigFilesDisplay = () => {
       {selectedDirectory && (
         <div>
           <p>Selected Directory: {selectedDirectory.name}/config</p>
-          {configContents.length > 0 ? (
+          {Array.isArray(configContents) && configContents.length > 0 ? (
             <div>
               <h3>Contents of "config" Subfolder:</h3>
               <FolderTree folders={configContents} />
