@@ -19,25 +19,37 @@ const ConfigFilesDisplay = () => {
 
   const readConfigFiles = async (directoryHandle) => {
     try {
-      // Get the directory handle for the "config" subfolder
-      const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
-
-      // Get all file handles inside the "config" subfolder
-      const fileHandles = await configDirectoryHandle.values();
-
-      // Read the contents of each file using the FileReader API
-      const configFilesData = await Promise.all(
-        fileHandles.map(async (fileHandle) => {
-          const file = await fileHandle.getFile();
-          const fileContents = await readFileContents(file);
-          return { name: file.name, contents: fileContents };
-        })
-      );
-
-      return configFilesData;
+      const configFilesList = [];
+      await traverseDirectory(directoryHandle, configFilesList);
+      return configFilesList;
     } catch (error) {
       console.error('Error reading config files:', error);
       return [];
+    }
+  };
+
+  const traverseDirectory = async (directoryHandle, configFilesList) => {
+    for await (const entry of directoryHandle.values()) {
+      if (entry.kind === 'file') {
+        // Check if the file is inside the "config" subfolder
+        if (entry.name === 'config') {
+          const configSubfolderHandle = await entry.getDirectoryHandle();
+          await readConfigFilesFromSubfolder(configSubfolderHandle, configFilesList);
+        }
+      } else if (entry.kind === 'directory') {
+        // Recursively traverse subdirectories
+        await traverseDirectory(entry, configFilesList);
+      }
+    }
+  };
+
+  const readConfigFilesFromSubfolder = async (configSubfolderHandle, configFilesList) => {
+    for await (const entry of configSubfolderHandle.values()) {
+      if (entry.kind === 'file') {
+        const file = await entry.getFile();
+        const fileContents = await readFileContents(file);
+        configFilesList.push({ name: file.name, contents: fileContents });
+      }
     }
   };
 
