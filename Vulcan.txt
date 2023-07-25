@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
 
-const FileDropdown = ({ files }) => {
-  const handleFileClick = (filePath) => {
-    // Show the global path of the file in an alert
-    alert('Global path: ' + filePath);
-  };
-
+const FileDropdown = ({ files, onFileSelected }) => {
   return (
-    <select onChange={(e) => handleFileClick(e.target.value)}>
+    <select onChange={(e) => onFileSelected(e.target.value)}>
       <option value="">Select a file</option>
       {files.map((file, index) => (
         <option key={index} value={file.path}>
@@ -58,6 +53,11 @@ const ConfigFilesDisplay = () => {
     }
   };
 
+  const handleFileSelected = (filePath) => {
+    // Show the global path of the selected file in an alert
+    alert('Global path: ' + filePath);
+  };
+
   return (
     <div>
       <button onClick={handleFilePickerClick}>Select Directory</button>
@@ -67,7 +67,7 @@ const ConfigFilesDisplay = () => {
           {configFiles.length > 0 ? (
             <div>
               <h3>Files in "config" Subfolder:</h3>
-              <FileDropdown files={configFiles} />
+              <FileDropdown files={configFiles} onFileSelected={handleFileSelected} />
             </div>
           ) : (
             <p>No files found in the "config" subfolder.</p>
