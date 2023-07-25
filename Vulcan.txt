@@ -1,110 +1,38 @@
 import React, { useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 const FileExplorer = () => {
   const [fileList, setFileList] = useState([]);
   const [currentFolderPath, setCurrentFolderPath] = useState('');
 
-  const handleFilePickerClick = async () => {
-    try {
-      const directoryHandle = await window.showDirectoryPicker();
-      const filesWithDetails = await buildFileTree(directoryHandle);
-      setFileList(filesWithDetails);
-
-      // Get the full path of the selected directory
-      const fullPath = await getDirectoryPath(directoryHandle);
-      setCurrentFolderPath(fullPath);
-      alert(`Selected Directory Path: ${fullPath}`);
-    } catch (error) {
-      console.error('Error accessing the selected directory:', error);
-    }
+  const onDrop = (acceptedFiles) => {
+    // Handle the selected files here, acceptedFiles will contain the files within the selected directory
+    const filesWithDetails = acceptedFiles.map((file) => ({
+      name: file.name,
+      isFile: true,
+      path: file.path, // The file.path might not be a full global path but can provide useful file information
+    }));
+    setFileList(filesWithDetails);
   };
 
-  const buildFileTree = async (directory, path = '') => {
-    const files = [];
-    for await (const [name, handle] of directory.entries()) {
-      const filePath = `${path}/${name}`;
-      if (handle.kind === 'file') {
-        files.push({
-          name,
-          isFile: true,
-          path: filePath,
-          handle, // Store the file handle for accessing global path
-        });
-      } else if (handle.kind === 'directory') {
-        files.push({
-          name,
-          isFile: false,
-          isExpanded: false,
-          path: filePath,
-          content: await buildFileTree(handle, filePath),
-        });
-      }
-    }
-    return files;
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: '*', // Allow any file type to be dropped
+    multiple: true, // Allow multiple files to be dropped
+    onDrop,
+    noClick: true, // Disable the default click behavior to prevent file selection dialog
+  });
 
-  const getDirectoryPath = async (directoryHandle) => {
-    let path = directoryHandle.name;
-    let currentHandle = directoryHandle;
-    while (true) {
-      try {
-        const parentHandle = await currentHandle.getParent();
-        if (parentHandle) {
-          path = `${parentHandle.name}/${path}`;
-          currentHandle = parentHandle;
-        } else {
-          break;
-        }
-      } catch (error) {
-        break;
-      }
-    }
-    return path;
-  };
-
-  const toggleFolderVisibility = (folder, fileList) => {
-    const updateFolder = (files) =>
-      files.map((file) => {
-        if (!file.isFile && file.path === folder.path) {
-          return { ...file, isExpanded: !file.isExpanded };
-        } else if (!file.isFile && folder.path.startsWith(file.path)) {
-          return { ...file, isExpanded: true, content: updateFolder(file.content) };
-        } else {
-          return file;
-        }
-      });
-
-    return updateFolder(fileList);
-  };
-
-  const handleFolderClick = (folder) => {
-    setCurrentFolderPath(folder.path); // Set the current folder path to the clicked folder path
-    setFileList((prevFileList) => toggleFolderVisibility(folder, prevFileList));
-  };
-
-  const handleFileClick = async (file) => {
-    try {
-      if (file.isFile && file.handle) {
-        const fileHandle = await file.handle.getFile();
-        const globalPath = fileHandle.fullPath;
-        alert(`Global File Path: ${globalPath}`);
-      }
-    } catch (error) {
-      console.error('Error accessing the selected file:', error);
-    }
-  };
-
-  const renderFileTree = (fileList) => {
+  const renderFileList = () => {
     return (
       <ul>
         {fileList.map((file, index) => (
           <li key={index}>
             {file.isFile ? (
-              <span onClick={() => handleFileClick(file)}>{file.name}</span>
+              <span>{file.name}</span>
             ) : (
-              <span onClick={() => handleFolderClick(file)}>
+              <span>
                 <strong>{file.name}</strong>
-                {file.isExpanded && renderFileTree(file.content)} {/* Render subfolders if expanded */}
+                {file.isExpanded && renderFileList()} {/* Render subfolders if expanded */}
               </span>
             )}
           </li>
@@ -115,10 +43,17 @@ const FileExplorer = () => {
 
   return (
     <div>
-      <button onClick={handleFilePickerClick}>Select Directory</button>
+      <div {...getRootProps()}>
+        <input {...getInputProps()} webkitdirectory="" />
+        {isDragActive ? (
+          <p>Drop the directory here ...</p>
+        ) : (
+          <p>Drag 'n' drop a directory here, or click to select a directory</p>
+        )}
+      </div>
       <div>
         <h2>Files and folders in the selected directory:</h2>
-        {fileList.length > 0 ? renderFileTree(fileList) : <p>No directory selected</p>}
+        {fileList.length > 0 ? renderFileList() : <p>No directory selected</p>}
       </div>
     </div>
   );
