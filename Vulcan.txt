@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 
-const FileUpload = () => {
-  const [fileNames, setFileNames] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+const FileExplorer = () => {
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const handleFilePickerClick = async () => {
     try {
       const directoryHandle = await window.showDirectoryPicker();
       const files = await readFilesInDirectory(directoryHandle);
-      setFileNames(files);
-      setShowDropdown(true); // Show the dropdown after files are selected
+      setSelectedFiles(files);
     } catch (error) {
       console.error('Error accessing the selected directory:', error);
     }
@@ -19,7 +17,7 @@ const FileUpload = () => {
     const files = [];
     for await (const entry of directoryHandle.values()) {
       if (entry.isFile) {
-        files.push({ name: entry.name, path: entry.fullPath });
+        files.push(entry);
       } else if (entry.isDirectory) {
         const nestedFiles = await readFilesInDirectory(entry);
         files.push(...nestedFiles);
@@ -28,32 +26,21 @@ const FileUpload = () => {
     return files;
   };
 
-  const handleFileSelect = (event) => {
-    const selectedFileName = event.target.value;
-    const selectedFile = fileNames.find((file) => file.name === selectedFileName);
-    if (selectedFile) {
-      alert('Selected File Path: ' + selectedFile.path);
-    }
-  };
-
   return (
     <div>
-      <button onClick={handleFilePickerClick}>Select Directory</button>
-      {showDropdown && fileNames.length > 0 && ( // Show the dropdown when files are selected
+      <button onClick={handleFilePickerClick}>Select Folder</button>
+      {selectedFiles.length > 0 && (
         <div>
-          <h3>Files in Selected Directory:</h3>
-          <select onChange={handleFileSelect}>
-            <option value="">Select a file</option>
-            {fileNames.map((file) => (
-              <option key={file.name} value={file.name}>
-                {file.name}
-              </option>
+          <h3>Files in Selected Folder:</h3>
+          <ul>
+            {selectedFiles.map((file) => (
+              <li key={file.name}>{file.name}</li>
             ))}
-          </select>
+          </ul>
         </div>
       )}
     </div>
   );
 };
 
-export default FileUpload;
+export default FileExplorer;
