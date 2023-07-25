@@ -21,11 +21,11 @@ const FolderTree = ({ folders }) => {
         </button>
         {isExpanded && (
           <div style={{ marginLeft: '20px' }}>
-            {folder.contents.map((item) =>
+            {folder.contents.map((item, index) =>
               item.type === 'file' ? (
-                <div key={item.name}>File: {item.name}</div>
+                <div key={index}>File: {item.name}</div>
               ) : (
-                <div key={item.name}>
+                <div key={index}>
                   {renderFolder(item)}
                 </div>
               )
@@ -38,7 +38,7 @@ const FolderTree = ({ folders }) => {
 
   return (
     <div>
-      {folders.map((folder) => renderFolder(folder))}
+      {folders.map((folder, index) => renderFolder(folder, index))}
     </div>
   );
 };
