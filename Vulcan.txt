@@ -45,7 +45,7 @@ const FolderTree = ({ folders }) => {
 
 const ConfigFilesDisplay = () => {
   const [selectedDirectory, setSelectedDirectory] = useState(null);
-  const [configContents, setConfigContents] = useState([]);
+  const [configContents, setConfigContents] = useState(null);
 
   const handleFilePickerClick = async () => {
     try {
@@ -91,7 +91,7 @@ const ConfigFilesDisplay = () => {
       {selectedDirectory && (
         <div>
           <p>Selected Directory: {selectedDirectory.name}/config</p>
-          {Array.isArray(configContents) && configContents.length > 0 ? (
+          {configContents !== null && configContents.length > 0 ? (
             <div>
               <h3>Contents of "config" Subfolder:</h3>
               <FolderTree folders={configContents} />
