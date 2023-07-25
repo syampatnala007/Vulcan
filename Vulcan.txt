@@ -34,7 +34,7 @@ const ConfigFilesDisplay = () => {
     try {
       const configFilesList = [];
       const configDirectoryHandle = await directoryHandle.getDirectoryHandle('config');
-      await traverseConfigDirectory(configDirectoryHandle, configFilesList, directoryHandle.name);
+      await traverseConfigDirectory(configDirectoryHandle, configFilesList, 'config');
       return configFilesList;
     } catch (error) {
       console.error('Error reading config files:', error);
@@ -42,13 +42,13 @@ const ConfigFilesDisplay = () => {
     }
   };
 
-  const traverseConfigDirectory = async (configDirectoryHandle, configFilesList, basePath) => {
+  const traverseConfigDirectory = async (configDirectoryHandle, configFilesList, parentPath) => {
     for await (const entry of configDirectoryHandle.values()) {
       if (entry.kind === 'file') {
         const file = await entry.getFile();
-        configFilesList.push({ name: file.name, path: `${basePath}/config/${file.name}` });
+        configFilesList.push({ name: file.name, path: `${parentPath}/${file.name}` });
       } else if (entry.kind === 'directory') {
-        await traverseConfigDirectory(entry, configFilesList, `${basePath}/config`);
+        await traverseConfigDirectory(entry, configFilesList, `${parentPath}/${entry.name}`);
       }
     }
   };
